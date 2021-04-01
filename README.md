@@ -39,7 +39,7 @@ for ant in antColony:
 In all of these examples, datarray does some memory magic to turn `Ant` into
 the following:
 
-```
+```nim
 type
   AntColony = object
     names: array[1000, string]

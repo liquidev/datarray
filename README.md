@@ -65,5 +65,16 @@ Datarray ith() ..................... 0.364 ms      0.396 ms    ±0.005  x1000
 Datarray Element[T] ................ 2.056 ms      2.225 ms    ±0.069  x1000
 ```
 
-The results with `Element[T]` are kind of disappointing, but I feel like there's
-still room for optimization here.
+`Element[T]` performs quite poorly, because the Nim compiler seems to insert a
+`setjmp` into the benchmark for exception handling for some reason.
+
+With `--exceptions:goto`, `Element[T]` performs just as well as `ith()`:
+
+```
+name ............................... min time      avg time    std dv   runs
+array of ref Ant ................... 2.478 ms      2.536 ms    ±0.024  x1000
+array of Ant ....................... 1.287 ms      1.309 ms    ±0.010  x1000
+AntColony .......................... 0.361 ms      0.397 ms    ±0.003  x1000
+Datarray ith() ..................... 0.361 ms      0.397 ms    ±0.003  x1000
+Datarray Element[T] ................ 0.362 ms      0.397 ms    ±0.004  x1000
+```

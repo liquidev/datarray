@@ -10,3 +10,4 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 1.4.4"
+requires "https://github.com/treeform/benchy 0.0.1"

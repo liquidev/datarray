@@ -80,3 +80,7 @@ AntColony .......................... 0.361 ms      0.397 ms    ±0.003  x1000
 Datarray ith() ..................... 0.361 ms      0.397 ms    ±0.003  x1000
 Datarray Element[T] ................ 0.362 ms      0.397 ms    ±0.004  x1000
 ```
+
+If you're writing software that needs high performance, you should be using
+`--gc:arc` or `--gc:orc` anyways as it offers more predictable performance,
+and `--exceptions:goto` as the default exception handling model.

@@ -2,6 +2,8 @@
 
 > Data oriented design made easy.
 
+Inspired by [this article](https://blog.royalsloth.eu/posts/the-compiler-will-optimize-that-away/).
+
 Datarray is a struct-of-arrays data structure that tries its best to emulate
 an object oriented-style array of structs.
 

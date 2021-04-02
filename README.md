@@ -50,4 +50,20 @@ type
 
 while still retaining easy, OOP-like field access using the dot operator.
 
-**TODO:** Benchmarks
+## Benchmarks
+
+`nim r --passC:-march=native -d:danger src/datarray.nim`
+
+Running on an AMD Ryzen 5 1600
+
+```
+name ............................... min time      avg time    std dv   runs
+array of ref Ant ................... 2.455 ms      2.518 ms    ±0.038  x1000
+array of Ant ....................... 1.283 ms      1.309 ms    ±0.016  x1000
+AntColony .......................... 0.371 ms      0.396 ms    ±0.006  x1000
+Datarray ith() ..................... 0.364 ms      0.396 ms    ±0.005  x1000
+Datarray Element[T] ................ 2.056 ms      2.225 ms    ±0.069  x1000
+```
+
+The results with `Element[T]` are kind of disappointing, but I feel like there's
+still room for optimization here.

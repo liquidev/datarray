@@ -39,15 +39,17 @@ proc packedSize(T: type): int {.compileTime.} =
     result += x.sizeof
 
 type
+  Mem = ptr UncheckedArray[byte]
+
   Datarray*[N: static int, T] {.byref.} = object
     ## Stack-allocated datarray with a fixed size.
     ## Note that `T` **must not** be ref!
     # i tried to constrain `T` but then the compiler yells at me in packedSize
     # so whatever
-    data: array[packedSize(T) * N, byte]
+    mem: array[packedSize(T) * N, byte]
 
   DynDatarrayObj[T] = object
-    mem: ptr UncheckedArray[byte]
+    mem: Mem
     len: int
 
   DynDatarray*[T] = ref DynDatarrayObj[T]
@@ -67,13 +69,13 @@ type
     # easily, by using openArray instead of ptr UncheckedArray and relying on
     # nim's borrow checker.
     # right now view types don't work all that well, so let's just not.
-    mem: ptr UncheckedArray[byte]
+    mem: Mem
     arrlen: int
     index: int
 
   VarElement*[T] = object
     ## An Element pointing to mutable data.
-    mem: ptr UncheckedArray[byte]
+    mem: Mem
     arrlen: int
     index: int
 
@@ -87,9 +89,9 @@ type
 # mem must return a *valid, non-nil* pointer to the raw bytes backing a
 # datarray.
 
-template mem*[N, T](arr: Datarray[N, T]): ptr UncheckedArray[byte] =
-  ## Implementation detail, do not use.
-  cast[ptr UncheckedArray[byte]](arr.data[0].unsafeAddr)
+# template mem*[N, T](arr: Datarray[N, T]): ptr UncheckedArray[byte] =
+#   ## Implementation detail, do not use.
+#   cast[ptr UncheckedArray[byte]](arr.data[0].unsafeAddr)
 
 #
 # info
@@ -204,12 +206,20 @@ template ith*[T](arr: var DynDatarray[T],
 template indexImpl(T, arr: untyped, i: int): Element[T] =
 
   rangeCheck i, 0..<arr.len
-  Element[T](mem: arr.mem, arrlen: arr.len, index: i)
+  Element[T](
+    mem: cast[Mem](arr.mem[0].unsafeAddr),
+    arrlen: arr.len,
+    index: i
+  )
 
 template varIndexImpl(T, arr: untyped, i: int): VarElement[T] =
 
   rangeCheck i, 0..<arr.len
-  VarElement[T](mem: arr.mem, arrlen: arr.len, index: i)
+  VarElement[T](
+    mem: cast[Mem](arr.mem[0].unsafeAddr),
+    arrlen: arr.len,
+    index: i
+  )
 
 template `[]`*[N, T](arr: Datarray[N, T], index: int): Element[T] =
   ## Indexes into the array and returns an `Element[T]` for an object with the
@@ -310,105 +320,4 @@ when not defined(datarrayNoDots):
   {.pop.}
 
 {.pop.}
-
-
-when isMainModule:
-
-  # example taken from:
-  # https://blog.royalsloth.eu/posts/the-compiler-will-optimize-that-away/
-
-  import std/random
-
-  import benchy
-
-  type
-    Ant = object
-      name: string
-      color: string
-      isWarrior: bool
-      age: int32
-
-  const size = 1000000
-
-  #
-  # array of ref Ant
-  # equivalent to the OOP Java version
-  #
-
-  block:
-    var antColony: array[size, ref Ant]
-    for ant in antColony.mitems:
-      ant = new Ant
-      ant.isWarrior = rand(1.0) < 0.5
-
-    timeIt "array of ref Ant":
-      var numberOfWarriors: int
-      for ant in antColony:
-        if ant.isWarrior:
-          inc numberOfWarriors
-      writeFile("/dev/null", $numberOfWarriors)  # keep wouldn't work
-
-  #
-  # array of Ant
-  # faster than the OOP Java version, as it doesn't involve an extra
-  # pointer indirection
-  #
-
-  block:
-    var antColony: array[size, Ant]
-    for ant in antColony.mitems:
-      ant.isWarrior = rand(1.0) < 0.5
-
-    timeIt "array of Ant":
-      var numberOfWarriors: int
-      for ant in antColony:
-        if ant.isWarrior:
-          inc numberOfWarriors
-      writeFile("/dev/null", $numberOfWarriors)
-
-  #
-  # AntColony
-  #
-
-  block:
-    type
-      AntColony = object
-        names: array[size, string]
-        colors: array[size, string]
-        warriors: array[size, bool]
-        ages: array[size, int32]
-
-    var antColony: AntColony
-    for isWarrior in antColony.warriors.mitems:
-      isWarrior = rand(1.0) < 0.5
-
-    timeIt "AntColony":
-      var numberOfWarriors: int
-      for i in 0..<size:
-        if antColony.warriors[i]:
-          inc numberOfWarriors
-      writeFile("/dev/null", $numberOfWarriors)
-
-  #
-  # datarray
-  #
-
-  block:
-    var antColony: Datarray[size, Ant]
-    for ant in antColony:
-      ant.isWarrior = rand(1.0) < 0.5
-
-    timeIt "Datarray ith()":
-      var numberOfWarriors: int
-      for i in 0..<antColony.len:
-        if antColony.ith(i, isWarrior):
-          inc numberOfWarriors
-      writeFile("/dev/null", $numberOfWarriors)
-
-    timeIt "Datarray Element[T]":
-      var numberOfWarriors: int
-      for ant in antColony:
-        if ant{isWarrior}:
-          inc numberOfWarriors
-      writeFile("/dev/null", $numberOfWarriors)
 

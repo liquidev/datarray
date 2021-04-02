@@ -1,3 +1,6 @@
+# example taken from:
+# https://blog.royalsloth.eu/posts/the-compiler-will-optimize-that-away/
+
 import std/random
 
 import benchy

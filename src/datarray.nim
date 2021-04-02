@@ -87,7 +87,8 @@ type
 # mem must return a *valid, non-nil* pointer to the raw bytes backing a
 # datarray.
 
-template mem[N, T](arr: Datarray[N, T]): ptr UncheckedArray[byte] =
+template mem*[N, T](arr: Datarray[N, T]): ptr UncheckedArray[byte] =
+  ## Implementation detail, do not use.
   cast[ptr UncheckedArray[byte]](arr.data[0].unsafeAddr)
 
 #

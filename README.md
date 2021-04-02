@@ -4,8 +4,8 @@
 
 Inspired by [this article](https://blog.royalsloth.eu/posts/the-compiler-will-optimize-that-away/).
 
-Datarray is a struct-of-arrays data structure that tries its best to emulate
-an object oriented-style array of structs.
+Datarray is a struct of arrays data structure that can be used just like an
+object oriented-style array of structs.
 
 ```nim
 import datarray
@@ -90,3 +90,8 @@ Datarray ith() ..................... 0.362 ms      0.396 ms    ±0.004  x1000
 Datarray Element[T] ................ 0.594 ms      0.595 ms    ±0.001  x1000
 ```
 
+For some reason, not using LTO and goto-based exceptions tanks the performance
+of `Element[T]`, but I'm yet to discover the reason behind this (or potentially
+a better solution that doesn't have such high performance overhead).
+Thus, try to avoid `Element[T]` in performance-critical code, and use `ith` and
+`select` instead of it.

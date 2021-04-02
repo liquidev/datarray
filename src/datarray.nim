@@ -27,6 +27,7 @@
 ## into an error.
 
 import std/macros
+import std/sugar
 
 #
 # type defs
@@ -321,3 +322,87 @@ when not defined(datarrayNoDots):
 
 {.pop.}
 
+#
+# select
+#
+
+proc verify(node: NimNode, predicate: bool, error: string) =
+
+  if not predicate:
+    error(error, node)
+
+macro select*(loop: ForLoopStmt): untyped =
+  ## Selects fields from a datarray. Refer to the example for usage.
+  runnableExamples:
+    import std/random
+
+    type
+      Example = object
+        a, b, c: int
+    var arr: Datarray[10, Example]
+
+    # there must be two loop variables:
+    # 1. the index
+    # 2. the fields that should get unpacked
+    # the index may be _ if it's not used, but it must always be present.
+    # the unpacked fields are desugared to ith() calls.
+    for i, (a, b) in select arr:
+      a = rand(1.0) < 0.5
+      b = a div 2 + i
+
+    # if only one field is needed, the () may be omitted:
+    for _, c in select(arr):
+      c += 1
+
+  # basic checks
+  loop.verify loop.len == 4, "select must have two loop variables"
+  loop[2].verify loop[2].kind in {nnkCall, nnkCommand},
+    "select can only be used like a normal call or a command call"
+  loop[2].verify loop[2].len == 2,
+    "select accepts a single argument with the datarray to select from"
+
+  # unpack the AST
+  var
+    indexVar = loop[0]
+    fields = loop[1]
+    arr = loop[2][1]
+    body = loop[3]
+
+  # check the unpacked AST
+  indexVar.verify indexVar.kind == nnkIdent,
+    "the index variable's name must be an identifier"
+  if fields.kind == nnkIdent:
+    fields = nnkVarTuple.newTree(fields, newEmptyNode())
+  fields.verify fields.kind == nnkVarTuple,
+    "fields must be wrapped in parentheses"
+
+  # generate a forvar for the index if it is _
+  if $indexVar == "_":
+    indexVar = genSym(nskForVar, "index")
+
+  # generate the templates
+  var iths = newStmtList()
+  for field in fields[0..^2]:
+    field.verify field.kind == nnkIdent,
+      "every field must be a single identifier"
+    let tmpl = nnkTemplateDef.newTree(
+      field,           # name
+      newEmptyNode(),  # patterns
+      newEmptyNode(),  # generic params
+      newTree(nnkFormalParams, bindSym"auto"),
+      newEmptyNode(),  # pragmas
+      newEmptyNode(),  # -
+      quote do:
+        `arr`.ith(`indexVar`, `field`)
+    )
+    iths.add(tmpl)
+
+  # put it all together
+  result = quote do:
+    for `indexVar` in 0..<`arr`.len:
+      `iths`
+      `body`
+  echo result.repr
+
+  # wrap the result in a block, because better safe than sorry
+  result = newBlockStmt(newEmptyNode(), result)

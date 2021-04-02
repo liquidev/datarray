@@ -6,15 +6,7 @@ import std/random
 import benchy
 import datarray
 
-type
-  Ant = object
-    name: string
-    color: string
-    isWarrior: bool
-    age: int32
-
-
-const size = 1000000
+include ant
 
 #
 # array of ref Ant

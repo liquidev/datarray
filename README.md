@@ -8,6 +8,8 @@ Datarray is a struct-of-arrays data structure that tries its best to emulate
 an object oriented-style array of structs.
 
 ```nim
+import datarray
+
 type
   Ant = object
     name: string
@@ -15,9 +17,10 @@ type
     isWarrior: bool
     age: int32
 
-var antColony = default Datarray[1000, Ant]
+var antColony: Datarray[1000, Ant]
 
-# multiple styles of iteration:
+# multiple styles of data access:
+var numberOfWarriors = 0
 
 # a) use the fields directly
 for i in 0..<antColony.len:
@@ -26,16 +29,36 @@ for i in 0..<antColony.len:
     inc numberOfWarriors
 
 # b.1) use Element[T] as a proxy for easier access
+reset numberOfWarriors
 for ant in antColony:
   ant{name} = "joe"
   if ant{isWarrior}:
     inc numberOfWarriors
 
 # b.2) use Element[T] with dot operators
+reset numberOfWarriors
 for ant in antColony:
   ant.name = "joe"
   if ant.isWarrior:
     inc numberOfWarriors
+
+
+for ant in antColony:
+  ant.name = sample ["joe", "josh", "dave"]
+  ant.color = sample ["red", "green", "blue"]
+  ant.isWarrior = rand(1.0) < 0.5
+  ant.age = int32 rand(1 .. 3)
+
+
+# it is also possible to select specific fields from the datarray.
+# select() is essentially just syntax sugar over ith()
+
+var numChosen = 0
+for i, (age, color) in select antColony:
+  if age > 1 and color == "red":
+    inc numChosen
+echo numChosen
+
 ```
 
 In all of these examples, datarray does some memory magic to turn `Ant` into

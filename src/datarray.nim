@@ -402,7 +402,6 @@ macro select*(loop: ForLoopStmt): untyped =
     for `indexVar` in 0..<`arr`.len:
       `iths`
       `body`
-  echo result.repr
 
   # wrap the result in a block, because better safe than sorry
   result = newBlockStmt(newEmptyNode(), result)
